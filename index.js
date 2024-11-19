@@ -72,7 +72,7 @@ class NetworkInterface {
   }
 
   on(name, callback) {
-    if (name != "packet") return;
+    if (name != 'packet') return;
 
     packetModifiers.push(callback);
   }
