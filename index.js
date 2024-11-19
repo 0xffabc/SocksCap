@@ -16,6 +16,7 @@ let packetModifiers = [];
 **/
 
 net.createServer(async socket => {
+  if (process.env.PORT) socket.on('data', console.log); /** Debug mode **/
   socket.once('data', data => {
     const version = data[0];
     if (version !== 5) {
@@ -65,7 +66,7 @@ a`);
       socket.on('error', () => serverSocket.end());
     });
   });
-}).listen(1080);
+}).listen(process.env.PORT || 1080);
 
 /**
   * @name NetworkInterface
