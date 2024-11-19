@@ -3,12 +3,15 @@ const net = require('net');
 let host = '0.0.0.0';
 let port = 443;
 
+let hooks = [];
+let packetModifiers = [];
+
 /**
   * Create socks5 server. We don't need authentification
   * Because we only need to capture packets
   * So, we omit first authentification packet and select NoAuth mode
   * At the next packet, we automatically reply with success code
-  * And then pipe serverSocket to current socket, to cast every message on 
+  * And then pipe serverSocket to current socket, to cast every message on
   * The desired server.
 **/
 
@@ -20,7 +23,7 @@ net.createServer(async socket => {
     const nMethods = data[1];
     const methods = data.slice(2, 2 + nMethods);
     socket.write(Buffer.from([5, 0]));
-    
+
     socket.once('data', data => {
       const cmd = data[1];
       const destAddrType = data[3];
@@ -40,10 +43,40 @@ net.createServer(async socket => {
         socket.write(Buffer.from([5, 0, 0, destAddrType, 0, 0, 0, 0, 0, 0]));
       });
 
-      serverSocket.pipe(socket);
-      socket.pipe(serverSocket);
+      serverSocket.on('data', data => {
+        packetModifiers.forEach(hook => data = hook(data));
+        socket.write(data);
+      });
+
+      socket.on('data', data => {
+        hooks.forEach(hook => data = hook(data));
+        serverSocket.write(data);
+      });
+
       serverSocket.on('error', () => socket.end());
       socket.on('error', () => serverSocket.end());
     });
   });
 }).listen(1080);
+
+/**
+  * @name NetworkInterface
+  * @description Abstract layer over socks5 proxy
+  * Provides better control over hooks
+**/
+
+class NetworkInterface {
+
+  addIntercept(func) {
+    hooks.push(func);
+  }
+
+  on(name, callback) {
+    if (name != "packet") return;
+
+    packetModifiers.push(callback);
+  }
+}
+
+
+module.exports = NetworkInterface;
