@@ -29,3 +29,11 @@ interface.on("packet", data => {
 ### function addIntercept(func: fn(data: Buffer<u8>) -> Buffer<u8>) -> void
 
 Adds a callback for intercepting sent packets. Accepts Buffer<u8> of that packet and returns same buffer of changed version of it
+
+```
+interface.addIntercept(data => {
+  data = data.replaceAll("Host: ", "HoSt:");
+
+  return data;
+})
+```
