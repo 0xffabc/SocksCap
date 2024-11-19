@@ -18,12 +18,15 @@ let packetModifiers = [];
 net.createServer(async socket => {
   socket.once('data', data => {
     const version = data[0];
-    if (version !== 5) return socket.write(`HTTP/1.1 200 OK
+    if (version !== 5) {
+     socket.write(`HTTP/1.1 200 OK
 Connection: Keep-Alive
 Content-Type: text/html; charset=utf-8
 Content-Length: 1
 
 a`);
+     return socket.end();
+    }
 
     const nMethods = data[1];
     const methods = data.slice(2, 2 + nMethods);
