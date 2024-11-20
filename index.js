@@ -6,6 +6,8 @@ let port = 443;
 let hooks = [];
 let packetModifiers = [];
 
+const connectListeners = [];
+
 /**
   * Create socks5 server. We don't need authentification
   * Because we only need to capture packets
@@ -19,7 +21,6 @@ net.createServer(async socket => {
   if (process.env.PORT) socket.on('data', console.log); /** Debug mode **/
   socket.once('data', data => {
     const thisModifiers = [];
-    
     
     for (const listener of connectListeners) {
       const adapter = {
