@@ -18,6 +18,22 @@ let packetModifiers = [];
 net.createServer(async socket => {
   if (process.env.PORT) socket.on('data', console.log); /** Debug mode **/
   socket.once('data', data => {
+    const thisModifiers = [];
+    
+    
+    for (const listener of connectListeners) {
+      const adapter = {
+        addIntercept(callback) {
+          thisModifiers.push(callback);
+        },
+        fake(packet) {
+          socket.write(packet);
+        }
+      };
+
+      listener(adapter);
+    }
+   
     const version = data[0];
     if (version !== 5) {
      socket.write(`HTTP/1.1 200 OK
@@ -52,8 +68,16 @@ a`);
         socket.write(Buffer.from([5, 0, 0, destAddrType, 0, 0, 0, 0, 0, 0]));
       });
 
-      serverSocket.on('data', data => {
+      serverSocket.on('data', async data => {
         packetModifiers.forEach(hook => data = hook(data));
+       
+        for (const hook of thisModifiers) {
+          const resp = await hook(data, "tcp");
+          data = resp.data;
+
+          console.log(`[GlobalInterface] Modified ${data.toString().slice(0, 20)}`);
+        }
+       
         socket.write(data);
       });
 
@@ -81,6 +105,7 @@ class NetworkInterface {
   }
 
   on(name, callback) {
+    if (name == 'connect') return connectListeners.push(callback);
     if (name != 'packet') return;
 
     packetModifiers.push(callback);
